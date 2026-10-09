@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UnitWorks — Unit Converter for Engineers</title>
+<meta name="description" content="Fast, precise unit conversion for engineers: length, mass, pressure, energy and temperature. Runs entirely in your browser.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fbfbfd;
+    --surface: #ffffff;
+    --surface-2: #f2f2f6;
+    --text: #1d1d1f;
+    --muted: #6e6e73;
+    --line: #e3e3e8;
+    --accent: #0a66ff;
+    --accent-soft: #e8f0ff;
+    --ok: #1a7f37;
+    --shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06);
+    --radius: 18px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0b0b0d; --surface: #161618; --surface-2: #1f1f22; --text: #f5f5f7; --muted: #a1a1a6;
+      --line: #2c2c30; --accent: #4c8dff; --accent-soft: #14233d; --ok: #3fb950;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0b0b0d; --surface: #161618; --surface-2: #1f1f22; --text: #f5f5f7; --muted: #a1a1a6;
+    --line: #2c2c30; --accent: #4c8dff; --accent-soft: #14233d; --ok: #3fb950;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 Inter, system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+  .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+
+  /* Navigation */
+  header { position: sticky; top: 0; z-index: 10; backdrop-filter: saturate(180%) blur(14px); -webkit-backdrop-filter: saturate(180%) blur(14px); background: color-mix(in srgb, var(--bg) 78%, transparent); border-bottom: 1px solid var(--line); }
+  nav { display: flex; align-items: center; gap: 24px; height: 60px; }
+  .logo { display: flex; align-items: center; gap: 9px; font-weight: 700; letter-spacing: -.02em; text-decoration: none; font-size: 18px; }
+  .logo-mark { width: 26px; height: 26px; border-radius: 8px; background: var(--accent); display: grid; place-items: center; color: #fff; font-size: 14px; }
+  .nav-links { display: flex; gap: 22px; margin-left: auto; font-size: 14px; color: var(--muted); }
+  .nav-links a { text-decoration: none; }
+  .nav-links a:hover { color: var(--text); }
+  .icon-btn { border: 1px solid var(--line); background: var(--surface); color: var(--text); width: 36px; height: 36px; border-radius: 10px; cursor: pointer; font-size: 16px; }
+
+  /* Hero */
+  .hero { text-align: center; padding: 88px 0 48px; }
+  .eyebrow { display: inline-block; font-size: 13px; font-weight: 600; color: var(--accent); background: var(--accent-soft); padding: 5px 12px; border-radius: 999px; }
+  h1 { font-size: clamp(38px, 6.4vw, 64px); line-height: 1.05; letter-spacing: -.035em; margin: 18px 0 16px; font-weight: 700; }
+  .lead { font-size: clamp(17px, 2.2vw, 20px); color: var(--muted); max-width: 620px; margin: 0 auto 30px; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; border: 0; border-radius: 999px; padding: 12px 22px; font: 600 15px Inter, sans-serif; cursor: pointer; text-decoration: none; transition: transform .15s, opacity .15s; }
+  .btn:active { transform: scale(.98); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-ghost { background: transparent; color: var(--accent); }
+  .stats { display: flex; justify-content: center; gap: 40px; margin-top: 48px; flex-wrap: wrap; color: var(--muted); font-size: 14px; }
+  .stats b { display: block; font-size: 26px; color: var(--text); letter-spacing: -.02em; }
+
+  /* Converter */
+  section { padding: 56px 0; }
+  .section-head { text-align: center; margin-bottom: 28px; }
+  h2 { font-size: clamp(28px, 4vw, 40px); letter-spacing: -.03em; margin: 0 0 8px; }
+  .sub { color: var(--muted); margin: 0; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+  .converter { padding: 26px; }
+  .tabs { display: flex; gap: 4px; background: var(--surface-2); padding: 4px; border-radius: 12px; overflow-x: auto; scrollbar-width: none; }
+  .tab { flex: 1; min-width: max-content; border: 0; background: transparent; color: var(--muted); font: 500 14px Inter, sans-serif; padding: 9px 14px; border-radius: 9px; cursor: pointer; }
+  .tab[aria-selected="true"] { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+  .fields { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 14px; align-items: end; margin-top: 22px; }
+  .field { min-width: 0; }
+  .field label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
+  .box { display: flex; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow: hidden; transition: border-color .15s, box-shadow .15s; }
+  .box:focus-within { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+  .box input { flex: 1; min-width: 0; width: 100%; border: 0; background: transparent; color: var(--text); font: 500 22px 'JetBrains Mono', monospace; padding: 14px; outline: none; }
+  .box select { border: 0; border-left: 1px solid var(--line); background: var(--surface-2); color: var(--text); font: 500 14px Inter, sans-serif; padding: 0 12px; outline: none; cursor: pointer; max-width: 46%; }
+  .swap { width: 46px; height: 46px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--accent); font-size: 18px; cursor: pointer; margin-bottom: 4px; transition: transform .25s; }
+  .swap:hover { transform: rotate(180deg); }
+  .result-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 18px; padding: 14px 16px; border-radius: 12px; background: var(--surface-2); }
+  .formula { font-size: 14px; color: var(--muted); }
+  .formula b { color: var(--text); font-weight: 500; }
+  .actions { display: flex; gap: 8px; align-items: center; }
+  .chip { border: 1px solid var(--line); background: var(--surface); color: var(--text); border-radius: 999px; padding: 6px 12px; font: 500 13px Inter, sans-serif; cursor: pointer; }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+  .precision { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+  .precision select { border: 1px solid var(--line); background: var(--surface); color: var(--text); border-radius: 8px; padding: 4px 6px; font: inherit; }
+  .lower { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 22px; }
+  .lower h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+  .picks { display: flex; flex-wrap: wrap; gap: 8px; }
+  .history { list-style: none; margin: 0; padding: 0; font-size: 14px; }
+  .history li { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .history li:last-child { border-bottom: 0; }
+  .history li:hover { color: var(--accent); }
+  .history .empty { color: var(--muted); cursor: default; }
+  .history-head { display: flex; justify-content: space-between; align-items: baseline; }
+  .link-btn { border: 0; background: none; color: var(--accent); font: 500 13px Inter, sans-serif; cursor: pointer; padding: 0; }
+  .toast { position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 20px); background: var(--text); color: var(--bg); padding: 10px 18px; border-radius: 999px; font-size: 14px; opacity: 0; transition: .25s; pointer-events: none; }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  /* Reference */
+  .ref-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+  .ref { padding: 18px; }
+  .ref h4 { margin: 0 0 10px; font-size: 15px; }
+  .ref p { margin: 0; font-size: 13.5px; color: var(--muted); line-height: 1.9; }
+
+  /* Features */
+  .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .feature { padding: 24px; }
+  .feature .ic { width: 40px; height: 40px; border-radius: 11px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-size: 19px; margin-bottom: 14px; }
+  .feature h3 { margin: 0 0 6px; font-size: 18px; letter-spacing: -.01em; }
+  .feature p { margin: 0; color: var(--muted); font-size: 15px; }
+
+  /* Pricing */
+  .plans { display: grid; grid-template-columns: repeat(2, minmax(0, 340px)); gap: 18px; justify-content: center; }
+  .plan { padding: 30px; position: relative; }
+  .plan.pro { border: 2px solid var(--accent); }
+  .badge { position: absolute; top: -13px; left: 30px; background: var(--accent); color: #fff; font-size: 12px; font-weight: 600; padding: 4px 11px; border-radius: 999px; }
+  .plan h3 { margin: 0; font-size: 17px; }
+  .price { font-size: 44px; font-weight: 700; letter-spacing: -.03em; margin: 10px 0 2px; }
+  .price span { font-size: 16px; color: var(--muted); font-weight: 500; }
+  .plan ul { list-style: none; padding: 0; margin: 20px 0 26px; }
+  .plan li { padding: 6px 0 6px 26px; position: relative; font-size: 15px; }
+  .plan li::before { content: "✓"; position: absolute; left: 0; color: var(--ok); font-weight: 700; }
+  .plan .btn { width: 100%; justify-content: center; }
+  .plan:not(.pro) .btn { background: var(--surface-2); color: var(--text); }
+
+  footer { border-top: 1px solid var(--line); padding: 30px 0 40px; color: var(--muted); font-size: 14px; }
+  footer .wrap { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+  @media (max-width: 760px) {
+    .nav-links { display: none; }
+    nav .icon-btn { margin-left: auto; }
+    .fields { grid-template-columns: minmax(0, 1fr); }
+    .swap { justify-self: center; transform: rotate(90deg); margin: 0; }
+    .swap:hover { transform: rotate(270deg); }
+    .lower, .features { grid-template-columns: 1fr; }
+    .plans { grid-template-columns: 1fr; }
+    .hero { padding-top: 56px; }
+    .converter { padding: 18px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <nav class="wrap">
+    <a class="logo" href="#top"><span class="logo-mark">⇄</span>UnitWorks</a>
+    <div class="nav-links"><a href="#converter">Converter</a><a href="#reference">Reference</a><a href="#features">Features</a><a href="#pricing">Pricing</a></div>
+    <button class="icon-btn" id="theme" aria-label="Toggle dark mode">◐</button>
+  </nav>
+</header>
+
+<main id="top">
+  <div class="wrap hero">
+    <span class="eyebrow">Built for engineers</span>
+    <h1>Unit conversion,<br>engineered right.</h1>
+    <p class="lead">Fast, precise conversion for length, mass, pressure, energy and temperature. Exact SI constants, two-way editing, and it all runs right in your browser.</p>
+    <a class="btn btn-primary" href="#converter">Start converting →</a>
+    <a class="btn btn-ghost" href="#pricing">See plans</a>
+    <div class="stats">
+      <div><b>5</b>categories</div>
+      <div><b id="unit-count">0</b>units</div>
+      <div><b>0 ms</b>server wait</div>
+      <div><b>100%</b>offline</div>
+    </div>
+  </div>
+
+  <section id="converter">
+    <div class="wrap">
+      <div class="section-head"><h2>Converter</h2><p class="sub">Type in either field. Both sides update instantly.</p></div>
+      <div class="card converter">
+        <div class="tabs" role="tablist" id="tabs"></div>
+        <div class="fields">
+          <div class="field">
+            <label for="from-val">From</label>
+            <div class="box"><input id="from-val" inputmode="decimal" autocomplete="off" value="1"><select id="from-unit" aria-label="From unit"></select></div>
+          </div>
+          <button class="swap" id="swap" aria-label="Swap units">⇄</button>
+          <div class="field">
+            <label for="to-val">To</label>
+            <div class="box"><input id="to-val" inputmode="decimal" autocomplete="off"><select id="to-unit" aria-label="To unit"></select></div>
+          </div>
+        </div>
+        <div class="result-bar">
+          <div class="formula mono" id="formula"></div>
+          <div class="actions">
+            <label class="precision">Digits
+              <select id="digits"><option value="4">4</option><option value="6" selected>6</option><option value="10">10</option><option value="15">15</option></select>
+            </label>
+            <button class="chip" id="copy">Copy result</button>
+          </div>
+        </div>
+        <div class="lower">
+          <div><h3>Quick picks</h3><div class="picks" id="picks"></div></div>
+          <div>
+            <div class="history-head"><h3>Recent</h3><button class="link-btn" id="clear">Clear</button></div>
+            <ul class="history" id="history"></ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="reference">
+    <div class="wrap">
+      <div class="section-head"><h2>Engineer’s cheat sheet</h2><p class="sub">The conversions you reach for every day.</p></div>
+      <div class="ref-grid" id="ref"></div>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="wrap">
+      <div class="section-head"><h2>Made for the workbench</h2><p class="sub">Small tool, serious accuracy.</p></div>
+      <div class="features">
+        <div class="card feature"><div class="ic">⚡</div><h3>Instant, two-way</h3><p>Edit either side and watch the other update as you type. Swap units with one click.</p></div>
+        <div class="card feature"><div class="ic">◎</div><h3>Exact constants</h3><p>Built on defined SI values: the international inch and pound, standard atmosphere, thermochemical calorie.</p></div>
+        <div class="card feature"><div class="ic">⌁</div><h3>Private &amp; offline</h3><p>Every calculation happens in your browser. No sign-up, no tracking, no server round-trips.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="pricing">
+    <div class="wrap">
+      <div class="section-head"><h2>Simple pricing</h2><p class="sub">Free for students. Forever.</p></div>
+      <div class="plans">
+        <div class="card plan">
+          <h3>Student</h3>
+          <div class="price">$0<span> / forever</span></div>
+          <ul><li>All 5 converters</li><li>6 significant digits</li><li>Works offline in your browser</li><li>Light &amp; dark mode</li></ul>
+          <a class="btn" href="#converter">Get started</a>
+        </div>
+        <div class="card plan pro">
+          <span class="badge">Popular</span>
+          <h3>Pro</h3>
+          <div class="price">$4<span> / month</span></div>
+          <ul><li>Everything in Student</li><li>15-digit extended precision</li><li>Saved conversion history</li><li>No ads, ever</li></ul>
+          <a class="btn btn-primary" href="#converter">Go Pro</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap"><span>© 2026 UnitWorks</span><span>Built with Claude Code · All math runs client-side</span></div>
+</footer>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+'use strict'
+// Each unit's factor converts it to the category's SI base unit (exact where defined).
+const CATEGORIES = {
+  length: { name: 'Length', units: {
+    m: ['Meter', 1], km: ['Kilometer', 1e3], cm: ['Centimeter', 1e-2], mm: ['Millimeter', 1e-3], 'µm': ['Micrometer', 1e-6],
+    in: ['Inch', 0.0254], ft: ['Foot', 0.3048], yd: ['Yard', 0.9144], mi: ['Mile', 1609.344], nmi: ['Nautical mile', 1852] },
+    picks: [['in', 'mm'], ['ft', 'm'], ['mi', 'km']] },
+  mass: { name: 'Mass', units: {
+    kg: ['Kilogram', 1], g: ['Gram', 1e-3], mg: ['Milligram', 1e-6], t: ['Tonne', 1e3],
+    lb: ['Pound', 0.45359237], oz: ['Ounce', 0.028349523125], st: ['Stone', 6.35029318], slug: ['Slug', 14.593902937206364] },
+    picks: [['lb', 'kg'], ['oz', 'g'], ['slug', 'kg']] },
+  pressure: { name: 'Pressure', units: {
+    Pa: ['Pascal', 1], kPa: ['Kilopascal', 1e3], MPa: ['Megapascal', 1e6], bar: ['Bar', 1e5], atm: ['Atmosphere', 101325],
+    psi: ['Pound / sq inch', 6894.757293168361], ksi: ['Kilopound / sq inch', 6894757.293168361], mmHg: ['mm of mercury', 133.322387415], inH2O: ['Inch of water', 249.08891] },
+    picks: [['psi', 'kPa'], ['bar', 'psi'], ['atm', 'kPa']] },
+  energy: { name: 'Energy', units: {
+    J: ['Joule', 1], kJ: ['Kilojoule', 1e3], MJ: ['Megajoule', 1e6], cal: ['Calorie', 4.184], kcal: ['Kilocalorie', 4184],
+    Wh: ['Watt-hour', 3600], kWh: ['Kilowatt-hour', 3.6e6], BTU: ['British thermal unit', 1055.05585262], 'ft·lbf': ['Foot-pound', 1.3558179483314004], eV: ['Electronvolt', 1.602176634e-19] },
+    picks: [['kWh', 'MJ'], ['BTU', 'kJ'], ['kcal', 'kJ']] },
+  temperature: { name: 'Temperature', units: { '°C': ['Celsius'], '°F': ['Fahrenheit'], K: ['Kelvin'], '°R': ['Rankine'] },
+    picks: [['°C', '°F'], ['°F', '°C'], ['°C', 'K']] },
+}
+
+// Temperature goes through Kelvin
+const toK = { '°C': c => c + 273.15, '°F': f => (f - 32) * 5 / 9 + 273.15, K: k => k, '°R': r => r * 5 / 9 }
+const fromK = { '°C': k => k - 273.15, '°F': k => (k - 273.15) * 9 / 5 + 32, K: k => k, '°R': k => k * 9 / 5 }
+
+function convert(cat, value, from, to) {
+  if (cat === 'temperature') return fromK[to](toK[from](value))
+  const u = CATEGORIES[cat].units
+  return value * u[from][1] / u[to][1]
+}
+
+const $ = id => document.getElementById(id)
+const state = { cat: 'length', from: 'in', to: 'mm', digits: 6 }
+
+function fmt(n) {
+  if (!Number.isFinite(n)) return ''
+  if (n === 0) return '0'
+  const abs = Math.abs(n)
+  if (abs >= 1e12 || abs < 1e-6) return n.toExponential(Math.max(0, state.digits - 1)).replace(/\.?0+e/, 'e')
+  return String(Number(n.toPrecision(state.digits)))
+}
+const parse = s => {
+  const v = parseFloat(String(s).replace(/\s/g, '').replace(',', '.'))
+  return Number.isFinite(v) ? v : NaN
+}
+
+// Theme
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v) } catch { return d } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)) } catch {} },
+}
+const savedTheme = store.get('uw-theme', null)
+if (savedTheme) document.documentElement.dataset.theme = savedTheme
+$('theme').onclick = () => {
+  const dark = matchMedia('(prefers-color-scheme: dark)').matches
+  const current = document.documentElement.dataset.theme || (dark ? 'dark' : 'light')
+  const next = current === 'dark' ? 'light' : 'dark'
+  document.documentElement.dataset.theme = next
+  store.set('uw-theme', next)
+}
+
+// Tabs and selects
+function renderTabs() {
+  $('tabs').innerHTML = Object.entries(CATEGORIES).map(([key, c]) =>
+    `<button class="tab" role="tab" aria-selected="${key === state.cat}" data-cat="${key}">${c.name}</button>`).join('')
+}
+function renderSelects() {
+  const opts = Object.entries(CATEGORIES[state.cat].units).map(([sym, [name]]) => `<option value="${sym}">${sym} — ${name}</option>`).join('')
+  $('from-unit').innerHTML = opts
+  $('to-unit').innerHTML = opts
+  $('from-unit').value = state.from
+  $('to-unit').value = state.to
+}
+function renderPicks() {
+  $('picks').innerHTML = CATEGORIES[state.cat].picks.map(([a, b]) => `<button class="chip" data-from="${a}" data-to="${b}">${a} → ${b}</button>`).join('')
+}
+function setCategory(cat) {
+  state.cat = cat
+  const [a, b] = CATEGORIES[cat].picks[0]
+  state.from = a
+  state.to = b
+  renderTabs()
+  renderSelects()
+  renderPicks()
+  update('from')
+}
+
+// Conversion in both directions
+let lastEdited = 'from'
+function update(source = lastEdited) {
+  lastEdited = source
+  if (source === 'from') {
+    const v = parse($('from-val').value)
+    $('to-val').value = Number.isNaN(v) ? '' : fmt(convert(state.cat, v, state.from, state.to))
+  } else {
+    const v = parse($('to-val').value)
+    $('from-val').value = Number.isNaN(v) ? '' : fmt(convert(state.cat, v, state.to, state.from))
+  }
+  const one = convert(state.cat, 1, state.from, state.to)
+  $('formula').innerHTML = state.cat === 'temperature'
+    ? `<b>${fmt(parse($('from-val').value) || 0)} ${state.from}</b> = <b>${$('to-val').value || 0} ${state.to}</b>`
+    : `1 ${state.from} = <b>${fmt(one)} ${state.to}</b>`
+  scheduleHistory()
+}
+
+// History (saved locally)
+let history = store.get('uw-history', [])
+let historyTimer = null
+function scheduleHistory() {
+  clearTimeout(historyTimer)
+  historyTimer = setTimeout(() => {
+    const a = $('from-val').value, b = $('to-val').value
+    if (!a || !b) return
+    const entry = { cat: state.cat, from: state.from, to: state.to, a, b }
+    const same = history[0] && JSON.stringify(history[0]) === JSON.stringify(entry)
+    if (same) return
+    history = [entry, ...history.filter(h => JSON.stringify(h) !== JSON.stringify(entry))].slice(0, 10)
+    store.set('uw-history', history)
+    renderHistory()
+  }, 900)
+}
+function renderHistory() {
+  $('history').innerHTML = history.length
+    ? history.map((h, i) => `<li data-i="${i}"><span class="mono">${h.a} ${h.from} → ${h.b} ${h.to}</span><span style="color:var(--muted)">${CATEGORIES[h.cat].name}</span></li>`).join('')
+    : '<li class="empty">Your last 10 conversions will show up here.</li>'
+}
+
+// Reference cards
+function renderReference() {
+  const rows = {
+    Length: ['1 in = 25.4 mm', '1 ft = 0.3048 m', '1 mi = 1.609344 km', '1 nmi = 1852 m'],
+    Mass: ['1 lb = 0.45359237 kg', '1 oz = 28.3495 g', '1 slug = 14.5939 kg', '1 t = 1000 kg'],
+    Pressure: ['1 atm = 101.325 kPa', '1 bar = 100 kPa', '1 psi ≈ 6.89476 kPa', '1 mmHg ≈ 133.322 Pa'],
+    Energy: ['1 kWh = 3.6 MJ', '1 BTU ≈ 1.05506 kJ', '1 kcal = 4.184 kJ', '1 ft·lbf ≈ 1.35582 J'],
+    Temperature: ['°F = °C × 9/5 + 32', 'K = °C + 273.15', '°R = K × 9/5', '0 K = −273.15 °C'],
+  }
+  $('ref').innerHTML = Object.entries(rows).map(([t, r]) => `<div class="card ref"><h4>${t}</h4><p class="mono">${r.join('<br>')}</p></div>`).join('')
+}
+
+// Events
+$('tabs').onclick = e => { const b = e.target.closest('.tab'); if (b) setCategory(b.dataset.cat) }
+$('from-val').oninput = () => update('from')
+$('to-val').oninput = () => update('to')
+$('from-unit').onchange = e => { state.from = e.target.value; update('from') }
+$('to-unit').onchange = e => { state.to = e.target.value; update('from') }
+$('swap').onclick = () => {
+  ;[state.from, state.to] = [state.to, state.from]
+  $('from-val').value = $('to-val').value
+  renderSelects()
+  update('from')
+}
+$('digits').onchange = e => { state.digits = Number(e.target.value); update() }
+$('picks').onclick = e => {
+  const b = e.target.closest('.chip')
+  if (!b) return
+  state.from = b.dataset.from
+  state.to = b.dataset.to
+  renderSelects()
+  update('from')
+}
+$('history').onclick = e => {
+  const li = e.target.closest('li[data-i]')
+  if (!li) return
+  const h = history[Number(li.dataset.i)]
+  state.cat = h.cat
+  state.from = h.from
+  state.to = h.to
+  renderTabs()
+  renderSelects()
+  renderPicks()
+  $('from-val').value = h.a
+  update('from')
+}
+$('clear').onclick = () => { history = []; store.set('uw-history', history); renderHistory() }
+let toastTimer = null
+function toast(msg) {
+  $('toast').textContent = msg
+  $('toast').classList.add('show')
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => $('toast').classList.remove('show'), 1600)
+}
+$('copy').onclick = async () => {
+  const text = `${$('to-val').value} ${state.to}`
+  try { await navigator.clipboard.writeText(text); toast(`Copied “${text}”`) } catch { toast('Copy not available here') }
+}
+
+$('unit-count').textContent = Object.values(CATEGORIES).reduce((n, c) => n + Object.keys(c.units).length, 0)
+renderTabs()
+renderSelects()
+renderPicks()
+renderReference()
+renderHistory()
+update('from')
+</script>
+</body>
+</html>
